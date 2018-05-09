@@ -1,11 +1,21 @@
 #ifdef PAGEDEF
 
 #ifndef MENUID_MAIN
+#if HAS_EXTENDED_AUDIO
+    #define MENUID_MAIN   (1 << 5)
+    #define MENUID_MODEL  (2 << 5)
+    #define MENUID_TX     (3 << 5)
+    #define MENUID_PAGE   (4 << 5)
+    #define MENUID_VOICE  (5 << 5)
+#else
     #define MENUID_MAIN   (1 << 4)
     #define MENUID_MODEL  (2 << 4)
     #define MENUID_TX     (3 << 4)
     #define MENUID_PAGE   (4 << 4)
+#endif // HAS_EXTENDED_AUDIO
 #endif
+
+
 
 //                  Menu ID     CONDITION
 #define MAIN_MENU   MENUID_MAIN  |  (MIXER_STANDARD | MIXER_ADVANCED)        // Top-level menu, always shown
@@ -14,6 +24,9 @@
 #define ADVGUI_MENU MENUID_MODEL |  MIXER_ADVANCED        // Model-menu, only shown for advanced-gui
 #define TX_MENU     MENUID_TX    |  (MIXER_STANDARD | MIXER_ADVANCED)        // Transmitter-menu, always shown
 #define PAGE_MENU   MENUID_PAGE  |  (MIXER_STANDARD | MIXER_ADVANCED)        // Hidden menu, for quick pages only
+#if HAS_MUSIC_CONFIG
+#define VOICE_MENU  MENUID_VOICE |  (MIXER_STANDARD | MIXER_ADVANCED)        // Voice-menu, always shown
+#endif // HAS_MUSIC_CONFIG
 
 //The following pages are not part of the menu system
 //---------------------------------------------------
@@ -64,7 +77,7 @@ PAGEDEF(PAGEID_DATALOG,  PAGE_DatalogInit,     PAGE_DatalogEvent,     NULL,     
 #endif
 PAGEDEF(PAGEID_MAINCFG,  PAGE_MainLayoutInit,  NULL,                  NULL,               MODEL_MENU,  _tr_noop("Main page config"))
 #if HAS_MUSIC_CONFIG
-PAGEDEF(PAGEID_VOICECFG, PAGE_VoiceconfigInit, NULL,                  NULL,               MODEL_MENU,  _tr_noop("Voice config"))
+PAGEDEF(PAGEID_VOICEMNU, PAGE_VoiceMenuInit,   NULL,                  NULL,               MODEL_MENU,  _tr_noop("Voice config menu"))
 #endif
 
 // Transmitter menu
@@ -83,6 +96,16 @@ PAGEDEF(PAGEID_RANGE,    PAGE_RangeInit,       NULL,                  PAGE_Range
 PAGEDEF(PAGEID_EXTOSD,   PAGE_ExternalOSDInit, NULL,                  NULL,                PAGE_MENU,  _tr_noop("External OSD"))
 #endif
 //-------------------
+
+// Voice config menu
+//-----------
+#if HAS_MUSIC_CONFIG
+PAGEDEF(PAGEID_VOICEGLOBAL, PAGE_VoiceGlobalInit, NULL,                  NULL,                VOICE_MENU,    _tr_noop("Global alert setup"))
+PAGEDEF(PAGEID_VOICESWITCH, PAGE_VoiceConfigInit, NULL,                  PAGE_VoiceConfigExit,VOICE_MENU,    _tr_noop("Switch/AUX voice"))
+PAGEDEF(PAGEID_VOICETELTIM, PAGE_VoiceConfigInit, NULL,                  PAGE_VoiceConfigExit,VOICE_MENU,    _tr_noop("Telem/Timer voice"))
+PAGEDEF(PAGEID_VOICEMIXER,  PAGE_VoiceConfigInit, NULL,                  PAGE_VoiceConfigExit,VOICE_MENU,    _tr_noop("Channel mux voice"))
+#endif
+
 
 //These pages should not be lisetd for quickpages
 PAGEDEF(PAGEID_SPLASH,   PAGE_SplashInit,      PAGE_SplashEvent,      PAGE_SplashExit,    0,           _tr_noop("Welcome"))

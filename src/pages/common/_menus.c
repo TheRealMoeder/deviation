@@ -17,7 +17,7 @@
 static struct menu_obj * const gui = &gui_objs.u.menu;
 
 static struct menu_page * const mp = &pagemem.u.menu_page;
-static u16 current_selected[3] = {0, 0, 0};  // 0 is used for main menu, 1& 2 are used for sub menu
+static u16 current_selected[4] = {0, 0, 0, 0};  // 0 is used for main menu, 1, 2 & 3 are used for sub menu
 
 static const char *idx_string_cb(guiObject_t *obj, const void *data);
 static const char *menu_name_cb(guiObject_t *obj, const void *data);
@@ -84,6 +84,21 @@ void PAGE_TxMenuInit(int page)
     PAGE_SetScrollable(&gui->scrollable, &current_selected[2]);
 }
 
+#if HAS_EXTENDED_AUDIO
+void PAGE_VoiceMenuInit(int page)
+{
+    (void)page;
+    if ( !AUDIO_VoiceAvailable() ) {
+        GUI_CreateLabelBox(&gui->msg, MSG_X, MSG_Y, 0, 0, &LABEL_FONT, NULL, NULL,
+            _tr("External voice\ncurrently not\navailable"));
+        return;
+    }
+    mp->menu_id = MENUID_VOICE;
+    _menu_init(PAGEID_VOICEMNU);
+    PAGE_SetScrollable(&gui->scrollable, &current_selected[3]);
+}
+#endif //HAS_EXTENDED_AUDIO
+
 const char *menu_name_cb(guiObject_t *obj, const void *data)
 {
     (void)obj;
@@ -98,4 +113,3 @@ const char *idx_string_cb(guiObject_t *obj, const void *data)
     sprintf(tempstring, "%d.", idx);
     return tempstring;
 }
-

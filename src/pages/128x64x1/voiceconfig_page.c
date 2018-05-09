@@ -23,12 +23,10 @@
 #ifndef OVERRIDE_PLACEMENT
 enum {
     LABEL_X        = 0,
-    LABEL_WIDTH    = 55,
-    TEXTSEL_X      = 55,
+    LABEL_WIDTH    = 58,
+    TEXTSEL_X      = 58,
     TEXTSEL_WIDTH  = 65,
     LABELID_WIDTH  = LABEL_WIDTH + TEXTSEL_WIDTH,
-    MSG_X          = 20,
-    MSG_Y          = 10,
 };
 #endif //OVERRIDE_PLACEMENT
 
@@ -52,20 +50,59 @@ static int row_cb(int absrow, int relrow, int y, void *data)
     return 1;
 }
 
-void PAGE_VoiceconfigInit(int page)
+static int global_row_cb(int absrow, int relrow, int y, void *data)
+{
+    (void)data;
+
+    //Row 1
+    GUI_CreateLabelBox(&gui->name[relrow], LABEL_X, y,
+            LABEL_WIDTH, LINE_HEIGHT, &LABEL_FONT, voiceglobal_str_cb, NULL, (void *)(long)absrow);
+    GUI_CreateTextSelectPlate(&gui->voiceidx[relrow], TEXTSEL_X, y,
+            TEXTSEL_WIDTH, LINE_HEIGHT, &TEXTSEL_FONT, NULL, voiceglobal_cb, (void *)(long)absrow);
+    return 1;
+}
+
+void PAGE_VoiceGlobalInit(int page)
 {
     (void)page;
     PAGE_SetModal(0);
-    if ( !AUDIO_VoiceAvailable() ) {
-        GUI_CreateLabelBox(&gui->msg, MSG_X, MSG_Y, 0, 0, &LABEL_FONT, NULL, NULL,
-            _tr("External voice\ncurrently not\navailable"));
-        return;
-    }
     PAGE_RemoveAllObjects();
-    PAGE_ShowHeader(PAGE_GetName(PAGEID_VOICECFG));
+    PAGE_ShowHeader(PAGE_GetName(PAGEID_VOICEGLOBAL));
     GUI_CreateScrollable(&gui->scrollable, 0, HEADER_HEIGHT, LCD_WIDTH, LCD_HEIGHT - HEADER_HEIGHT,
-                     LINE_SPACE * 2, MODEL_CUSTOM_ALARMS, row_cb, NULL, NULL, NULL);
+                     LINE_SPACE, 14, global_row_cb, NULL, NULL, NULL);
+    PAGE_SetScrollable(&gui->scrollable, &current_selected);
+}
+
+void PAGE_VoiceConfigInit(int page)
+{
+    (void)page;
+    u8 voiceconfig_items = 0;
+    PAGE_SetModal(0);
+    PAGE_RemoveAllObjects();
+    PAGE_ShowHeader(PAGE_GetName(PAGE_GetID()));
+    switch(PAGE_GetID()) {
+        case PAGEID_VOICESWITCH:
+            voiceconfig_items = NUM_SWITCHES;
+#if NUM_AUX_KNOBS
+            voiceconfig_items += NUM_AUX_KNOBS * 2;
+#endif
+            break;
+        case PAGEID_VOICETELTIM:
+            voiceconfig_items = NUM_TIMERS + TELEM_NUM_ALARMS;
+            break;
+        case PAGEID_VOICEMIXER:
+            voiceconfig_items = NUM_CHANNELS;
+    }
+    GUI_CreateScrollable(&gui->scrollable, 0, HEADER_HEIGHT, LCD_WIDTH, LCD_HEIGHT - HEADER_HEIGHT,
+                     LINE_SPACE * 2, voiceconfig_items, row_cb, NULL, NULL, NULL);
     PAGE_SetScrollable(&gui->scrollable, &current_selected);
 
 }
+
+void PAGE_VoiceConfigExit(int page)
+{
+    (void)page;
+    current_selected = 0;
+}
+
 #endif

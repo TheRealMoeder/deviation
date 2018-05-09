@@ -15,13 +15,7 @@
 
 #include "extended_audio.h"
 
-#define VOICE_SRC_SWITCH 0
-#if NUM_AUX_KNOBS
-#define VOICE_SRC_AUX (VOICE_SRC_SWITCH + NUM_SWITCHES)
-#endif
-#define VOICE_SRC_MIXER (MODEL_CUSTOM_ALARMS - NUM_OUT_CHANNELS - NUM_VIRT_CHANNELS)
-#define VOICE_SRC_TELEMETRY (VOICE_SRC_MIXER - TELEM_NUM_ALARMS)
-#define VOICE_SRC_TIMER (VOICE_SRC_TELEMETRY - NUM_TIMERS)
+
 
 
 static struct voiceconfig_page * const mp = &pagemem.u.voiceconfig_page;
@@ -29,23 +23,102 @@ static struct voiceconfig_obj * const gui = &gui_objs.u.voiceconfig;
 
 static u16 current_selected = 0;
 
-
+enum {
+    VOICE_SRC_SWITCH = 0,
+    VOICE_SRC_AUX,
+    VOICE_SRC_TIMER,
+    VOICE_SRC_TELEMETRY,
+    VOICE_SRC_MIXER,
+};
 
 static u8 voiceconfig_getsrctype (u8 idx)
 {
-    if (idx < NUM_SWITCHES)
-        return VOICE_SRC_SWITCH;
-/*    if (idx < NUM_INPUTS - INP_HAS_CALIBRATION + NUM_TX_BUTTONS)
-        return VOICE_SRC_BUTTON;*/
+    switch(PAGE_GetID()) {
+        case PAGEID_VOICESWITCH:
+            if (idx < NUM_SWITCHES)
+                return VOICE_SRC_SWITCH;
 #if NUM_AUX_KNOBS
-    if (idx < NUM_SWITCHES + NUM_AUX_KNOBS * 2)
-        return VOICE_SRC_AUX;
+                if (idx < NUM_SWITCHES + NUM_AUX_KNOBS * 2)
+                    return VOICE_SRC_AUX;
 #endif
-    if (idx < NUM_SWITCHES + NUM_AUX_KNOBS * 2 + NUM_TIMERS)
-        return VOICE_SRC_TIMER;
-    if (idx < NUM_SWITCHES + NUM_AUX_KNOBS * 2 + NUM_TIMERS + TELEM_NUM_ALARMS)
-        return VOICE_SRC_TELEMETRY;
+            break;
+        case PAGEID_VOICETELTIM:
+            if (idx < NUM_TIMERS)
+                return VOICE_SRC_TIMER;
+            if (idx < NUM_TIMERS + TELEM_NUM_ALARMS)
+                return VOICE_SRC_TELEMETRY;
+            break;
+    }
     return VOICE_SRC_MIXER;
+}
+
+const char *voiceglobal_str_cb(guiObject_t *obj, const void *data)
+{
+    (void)obj;
+    int idx = (long)data;
+    switch (idx) {
+        case 0: strcpy(tempstring, _tr("Battery")); break;
+        case 1: strcpy(tempstring, _tr("Binding")); break;
+        case 2: strcpy(tempstring, _tr("Inactivity")); break;
+        case 3: strcpy(tempstring, _tr("Timer warn")); break;
+        case 4:
+        case 5:
+        case 6:
+        case 7: snprintf(tempstring, sizeof(tempstring), _tr("Timer %d"), idx - 3); break;
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13: snprintf(tempstring, sizeof(tempstring), _tr("Telem %d"), idx - 7); break;
+    }
+    return tempstring;
+
+}
+
+static const char *voiceglobal_cb(guiObject_t *obj, int dir, void *data)
+{
+    (void) obj;
+    int idx = (long)data;
+    struct CustomVoice *vpt;
+    vpt = NULL;
+
+    switch (idx) {
+        case 0:
+            vpt = &Model.voice.switches[idx];
+            break;
+        case 1:
+            vpt = &Model.voice.timer[idx];
+            break;
+        case 2:
+            vpt = &Model.voice.telemetry[idx - NUM_TIMERS];
+            break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            break;
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+            break;
+        }
+    if (dir == -1 && vpt->music == CUSTOM_ALARM_ID) // set to none below 1
+        vpt->music = 0;
+    if (dir == 1 && vpt->music == 0) // set to CUSTOM_ALARM_ID when currently none
+        vpt->music = CUSTOM_ALARM_ID - 1;
+    GUI_TextSelectEnablePress((guiTextSelect_t *)obj, vpt->music);
+
+    if (vpt->music == 0) {
+        return strcpy(tempstring, _tr("None"));
+    }
+    vpt->music = GUI_TextSelectHelper(vpt->music - CUSTOM_ALARM_ID + 1, //Relabling so voice in menu starts with 1
+        1, voice_map_entries - CUSTOM_ALARM_ID, dir, 1, 10, NULL) + CUSTOM_ALARM_ID - 1;
+    snprintf(tempstring, 5, "%d", vpt->music - CUSTOM_ALARM_ID + 1);
+    return tempstring;
 }
 
 const char *voiceconfig_str_cb(guiObject_t *obj, const void *data)
@@ -72,15 +145,15 @@ const char *voiceconfig_str_cb(guiObject_t *obj, const void *data)
 #endif
         case VOICE_SRC_TIMER:
             snprintf(tempstring, sizeof(tempstring), _tr("Timer %d"),
-                idx - (VOICE_SRC_TIMER) + 1);
+                idx + 1);
             break;
         case VOICE_SRC_TELEMETRY:
             snprintf(tempstring, sizeof(tempstring), _tr("Telem %d"),
-                idx - (VOICE_SRC_TELEMETRY) + 1);
+                idx - (NUM_TIMERS) + 1);
             break;
         case VOICE_SRC_MIXER:
-            INPUT_SourceNameReal(tempstring,
-                    (idx - (VOICE_SRC_MIXER) + NUM_INPUTS + 1));
+            INPUT_SourceName(tempstring,
+                    (idx + INP_HAS_CALIBRATION + NUM_SWITCHES + 1));
             break;
     }
     return tempstring;
@@ -93,25 +166,25 @@ static void voice_test_cb(guiObject_t *obj, void *data)
     switch(voiceconfig_getsrctype(idx)) {
         case VOICE_SRC_SWITCH:
             if (Model.voice.switches[idx - VOICE_SRC_SWITCH].music)
-                MUSIC_Play(Model.voice.switches[idx - VOICE_SRC_SWITCH].music);
+                MUSIC_Play(Model.voice.switches[idx].music);
             break;
 #if NUM_AUX_KNOBS
         case VOICE_SRC_AUX:
             if (Model.voice.aux[idx - VOICE_SRC_AUX].music)
-                MUSIC_Play(Model.voice.aux[idx - VOICE_SRC_AUX].music);
+                MUSIC_Play(Model.voice.aux[idx - NUM_SWITCHES].music);
             break;
 #endif
         case VOICE_SRC_TIMER:
             if (Model.voice.timer[idx - VOICE_SRC_TIMER].music)
-                MUSIC_Play(Model.voice.timer[idx - VOICE_SRC_TIMER].music);
+                MUSIC_Play(Model.voice.timer[idx].music);
             break;
         case VOICE_SRC_TELEMETRY:
             if (Model.voice.telemetry[idx - VOICE_SRC_TELEMETRY].music)
-                MUSIC_Play(Model.voice.telemetry[idx - VOICE_SRC_TELEMETRY].music);
+                MUSIC_Play(Model.voice.telemetry[idx - NUM_TIMERS].music);
             break;
         case VOICE_SRC_MIXER:
             if (Model.voice.mixer[idx - VOICE_SRC_MIXER].music)
-                MUSIC_Play(Model.voice.mixer[idx - VOICE_SRC_MIXER].music);
+                MUSIC_Play(Model.voice.mixer[idx].music);
             break;
     }
 }
@@ -122,26 +195,26 @@ static const char *voicelbl_cb(guiObject_t *obj, const void *data)
     int idx = (long)data;
     switch (voiceconfig_getsrctype(idx)) {
         case VOICE_SRC_SWITCH:
-            if (Model.voice.switches[idx - VOICE_SRC_SWITCH].music)
-                return voice_map[Model.voice.switches[idx - VOICE_SRC_SWITCH].music].label;
+            if (Model.voice.switches[idx].music)
+                return voice_map[Model.voice.switches[idx].music].label;
             break;
 #if NUM_AUX_KNOBS
         case VOICE_SRC_AUX:
-            if(Model.voice.aux[idx - VOICE_SRC_AUX].music)
-                return voice_map[Model.voice.aux[idx - VOICE_SRC_AUX].music].label;
+            if(Model.voice.aux[idx - NUM_SWITCHES].music)
+                return voice_map[Model.voice.aux[idx - NUM_SWITCHES].music].label;
             break;
 #endif
         case VOICE_SRC_TIMER:
-            if (Model.voice.timer[idx - VOICE_SRC_TIMER].music)
-                return voice_map[Model.voice.timer[idx - VOICE_SRC_TIMER].music].label;
+            if (Model.voice.timer[idx].music)
+                return voice_map[Model.voice.timer[idx].music].label;
             break;
         case VOICE_SRC_TELEMETRY:
-            if (Model.voice.telemetry[idx - VOICE_SRC_TELEMETRY].music)
-                return voice_map[Model.voice.telemetry[idx - VOICE_SRC_TELEMETRY].music].label;
+            if (Model.voice.telemetry[idx - NUM_TIMERS].music)
+                return voice_map[Model.voice.telemetry[idx - NUM_TIMERS].music].label;
             break;
         case VOICE_SRC_MIXER:
-            if (Model.voice.mixer[idx - VOICE_SRC_MIXER].music)
-                return voice_map[Model.voice.mixer[idx - VOICE_SRC_MIXER].music].label;
+            if (Model.voice.mixer[idx].music)
+                return voice_map[Model.voice.mixer[idx].music].label;
             break;
     }
     return strcpy(tempstring, "");
@@ -157,21 +230,21 @@ static const char *voiceid_cb(guiObject_t *obj, int dir, void *data)
 
     switch (voiceconfig_getsrctype(idx)) {
         case VOICE_SRC_SWITCH:
-            vpt = &Model.voice.switches[idx - VOICE_SRC_SWITCH];
+            vpt = &Model.voice.switches[idx];
             break;
 #if NUM_AUX_KNOBS
         case VOICE_SRC_AUX:
-            vpt = &Model.voice.aux[idx - VOICE_SRC_AUX];
+            vpt = &Model.voice.aux[idx - NUM_SWITCHES];
             break;
 #endif
         case VOICE_SRC_TIMER:
-            vpt = &Model.voice.timer[idx - VOICE_SRC_TIMER];
+            vpt = &Model.voice.timer[idx];
             break;
         case VOICE_SRC_TELEMETRY:
-            vpt = &Model.voice.telemetry[idx - VOICE_SRC_TELEMETRY];
+            vpt = &Model.voice.telemetry[idx - NUM_TIMERS];
             break;
         case VOICE_SRC_MIXER:
-            vpt = &Model.voice.mixer[idx - VOICE_SRC_MIXER];
+            vpt = &Model.voice.mixer[idx];
             break;
     }
     if (dir == -1 && vpt->music == CUSTOM_ALARM_ID) // set to none below 1

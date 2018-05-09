@@ -20,12 +20,15 @@
 #include "gui/gui.h"
 #include "config/model.h"
 #include "config/tx.h"
+#include "extended_audio.h"
 
 enum {
     NUM_X             = 0,
     NUM_WIDTH         = 16,
     MENU_X            = 17,
     MENU_WIDTH        = (LCD_WIDTH - MENU_X * 2),
+    MSG_X          = 20,
+    MSG_Y          = 10,
 };
 #endif //OVERRIDE_PLACEMENT
 

@@ -41,7 +41,6 @@ enum Music {
 #define NUM_STICKS 4
 #define NUM_AUX_KNOBS	(INP_HAS_CALIBRATION - NUM_STICKS)	// Exclude sticks
 #define NUM_SWITCHES (NUM_INPUTS - INP_HAS_CALIBRATION)
-#define MODEL_CUSTOM_ALARMS (NUM_SWITCHES + NUM_AUX_KNOBS * 2 + NUM_TIMERS + TELEM_NUM_ALARMS + NUM_OUT_CHANNELS + NUM_VIRT_CHANNELS)
 
 enum AudioPlayers {
   AUDIO_NONE = 0,	// Just use Tx beeps.
@@ -92,7 +91,8 @@ struct ButtonVoice {
 };
 
 struct CustomVoice {
-    u16 music;
+    s16 music;
+    u16 vibrate;
 };
 
 struct  Voice {

@@ -78,6 +78,9 @@ struct menu_obj {
     guiLabel_t idx[7];
     guiLabel_t name[7];
     guiScrollable_t scrollable;
+#if HAS_MUSIC_CONFIG
+    guiLabel_t msg;
+#endif // HAS_MUSIC_CONFIG
 };
 
 struct modelcfg_obj {
@@ -221,10 +224,9 @@ struct debuglog_obj {
 
 #ifdef HAS_MUSIC_CONFIG
 struct voiceconfig_obj {
-    guiLabel_t msg;
     guiScrollable_t scrollable;
-    guiLabel_t name[2];
-    guiTextSelect_t voiceidx[2];
+    guiLabel_t name[4];
+    guiTextSelect_t voiceidx[4];
     guiLabel_t voicelbl[2];
 
 };

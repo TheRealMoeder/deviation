@@ -61,6 +61,9 @@ void PAGE_MenuInit(int page);
 void PAGE_MenuExit();
 void PAGE_TxMenuInit(int page);
 void PAGE_ModelMenuInit(int page);
+#if HAS_EXTENDED_AUDIO
+void PAGE_VoiceMenuInit(int page);
+#endif
 
 void PAGE_AboutInit(int page);
 void PAGE_SplashInit(int page);
