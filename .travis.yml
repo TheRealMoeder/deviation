@@ -36,7 +36,7 @@ dist: xenial
 #compiler: gcc
 
 before_install:
-   - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 762E3157.
+   - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 762E3157
    - sudo -E apt-get -yq --no-install-suggests --no-install-recommends $(travis_apt_get_options) install build-essential git libc6-i386 mingw32 mingw32-binutils mingw32-runtime libfltk1.3-dev gcovr
    - pip install --user cpp-coveralls
    - if [ ! -d "$HOME/gcc-arm-none-eabi-4_8-2013q4/bin" ]; then
