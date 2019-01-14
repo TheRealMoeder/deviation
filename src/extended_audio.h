@@ -3,7 +3,7 @@
 
 #ifdef HAS_EXTENDED_AUDIO
 
-#define AUDIO_QUEUE_LENGTH 20 // arbitraty chosen, do we need more?
+#define AUDIO_QUEUE_LENGTH 20 // arbitraty chosen, enough?
 
 void AUDIO_Init();
 int AUDIO_Play(u16 music);
