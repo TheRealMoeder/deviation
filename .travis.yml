@@ -15,6 +15,9 @@ env:
       - MAKETARGET=test
 #      - COMPILER=latest TARGET=devo8
 
+matrix:
+  fast_finish: true
+
 dist: trusty
 
 addons:
