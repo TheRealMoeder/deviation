@@ -33,14 +33,13 @@
 
 #define MIN_RADIOCHANNEL    0x00
 #define MAX_RADIOCHANNEL    0x80  // testing only, max is 0xFF
-#define CHANNEL_LOCK_TIME   300  // with precalibration channel requires  only 90 usec for synthesizer to settle
-#define INTERNAL_AVERAGE    3
+#define CHANNEL_LOCK_TIME   100  // with precalibration channel requires  only 90 usec for synthesizer to settle
+#define INTERNAL_AVERAGE    1
 #define AVERAGE_INTVL       1
 #define RSSI_OFFSET         72  // for true dBm values
 
 static int averages, channel, scan_state;
 static u32 rssi_sum;
-static u8 rssi_test;
 static u8 calibration[MAX_RADIOCHANNEL];
 static u8 calibration_fscal2, calibration_fscal3;
 
@@ -128,11 +127,10 @@ static u8 _scan_rssi()
 #ifdef EMULATOR
     return rand32() % 0xFF;
 #else
-    rssi_test = CC2500_ReadReg(CC2500_34_RSSI);  // 0.5 db/count, RSSI value read from the RSSI status register is a 2’s complement number
     u8 rssi = CC2500_ReadReg(CC2500_34_RSSI);  // 0.5 db/count, RSSI value read from the RSSI status register is a 2’s complement number
     // CC2500_Strobe(CC2500_SIDLE);
     u8 rssi_rel;
-    rssi_test = rssi;
+    //rssi_test = rssi;
     /*
     if (rssi >= 128) {
         rssi_dbm = (rssi - 256) / 2;
@@ -140,7 +138,7 @@ static u8 _scan_rssi()
         rssi_dbm = rssi / 2;
     return abs(rssi_dbm - RSSI_OFFSET);
     */
-    CC2500_Strobe(CC2500_SFRX); // flush fifo
+    //CC2500_Strobe(CC2500_SFRX); // flush fifo
     // CC2500_Strobe(CC2500_SNOP);
     if (rssi >= 128) {
         rssi_rel = rssi - 128;  // relative power levels 0-127 (equals -137 to -72 dBm)
@@ -159,12 +157,15 @@ static u16 scan_cb()
             rssi_sum = 0;
             averages = 0;
             channel++;
+            //CC2500_Strobe(CC2500_SFRX);
             if (channel == (Scanner.chan_max - Scanner.chan_min + 1))
                 channel = 0;
             if (Scanner.averaging)
                 Scanner.rssi[channel] = 0;
             _scan_next();
             scan_state = SCAN_GET_RSSI;
+            CC2500_Strobe(CC2500_SRX);
+            
             return CHANNEL_LOCK_TIME;
         case SCAN_GET_RSSI:
             rssi_value = _scan_rssi();
