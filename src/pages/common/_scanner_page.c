@@ -26,7 +26,8 @@ static void _scan_enable(int enable)
     if (enable) {
         PROTOCOL_DeInit();
         sp->model_protocol = Model.protocol;  // Save protocol used in current Model file
-        Model.protocol = PROTOCOL_SCANNER_CYRF;
+//        Model.protocol = PROTOCOL_SCANNER_CYRF;
+        Model.protocol = PROTOCOL_SCANNER_CC2500;
         PROTOCOL_Init(1);  // Switch to scanner configuration and ignore safety
         PROTOCOL_SetBindState(0);  // Disable binding message
     } else {

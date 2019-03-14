@@ -87,7 +87,7 @@ static int _scan_rssi()
 #ifdef EMULATOR
     return rand32() % 0x1F;
 #else
-    return CYRF_ReadRegister(CYRF_13_RSSI) & 0x1F;
+    return CYRF_ReadRegister(CYRF_13_RSSI) & 0x1F;  // ca. 1.9 dB/count, 5 bits = values 0-31
 #endif
 }
 
