@@ -35,7 +35,7 @@
 #define MAX_RADIOCHANNEL    0x80  // testing only, max is 0xFF
 #define CHANNEL_LOCK_TIME   100  // with precalibration channel requires  only 90 usec for synthesizer to settle
 #define INTERNAL_AVERAGE    1
-#define AVERAGE_INTVL       1
+#define AVERAGE_INTVL       50
 #define RSSI_OFFSET         72  // for true dBm values
 
 static int averages, channel, scan_state;
@@ -160,8 +160,8 @@ static u16 scan_cb()
             //CC2500_Strobe(CC2500_SFRX);
             if (channel == (Scanner.chan_max - Scanner.chan_min + 1))
                 channel = 0;
-            if (Scanner.averaging)
-                Scanner.rssi[channel] = 0;
+            //if (Scanner.averaging)
+            //    Scanner.rssi[channel] = 0;
             _scan_next();
             scan_state = SCAN_GET_RSSI;
             CC2500_Strobe(CC2500_SRX);
