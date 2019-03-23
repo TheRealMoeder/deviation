@@ -45,17 +45,11 @@ void _draw_channels()
     // draw rssi values
     for (int i = 0; i < Scanner.chan_max - Scanner.chan_min; i++) {
         col = (LCD_WIDTH - (Scanner.chan_max - Scanner.chan_min)) / 2 + i;
-<<<<<<< HEAD
         if (Scanner.averaging > 0) {
             height = Scanner.rssi[i] * (LCD_HEIGHT - offset) / 0x1F;
         } else {
             height = Scanner.rssi_peak[i] * (LCD_HEIGHT - offset) / 0x1F;
         }
-=======
-//        height = Scanner.rssi[i] * (LCD_HEIGHT - offset) / 0x1F;  // CYRF
-        height = Scanner.rssi[i] * (LCD_HEIGHT - offset) / 0xFF;
-
->>>>>>> further work on CC2500 scanner
         LCD_DrawFastVLine(col, offset, LCD_HEIGHT - offset - height, 0);
         LCD_DrawFastVLine(col, LCD_HEIGHT - height, height, 1);
 
