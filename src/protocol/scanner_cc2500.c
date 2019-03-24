@@ -23,6 +23,7 @@
 #include "interface.h"
 #include "rftools.h"
 #include "telemetry.h"
+#include "stdlib.h"
 
 #ifdef PROTO_HAS_CC2500
 #if SUPPORT_SCANNER
@@ -34,12 +35,10 @@
 #define MIN_RADIOCHANNEL    0x00
 #define MAX_RADIOCHANNEL    0x80  // testing only, max is 0xFF
 #define CHANNEL_LOCK_TIME   100  // with precalibration channel requires  only 90 usec for synthesizer to settle
-#define INTERNAL_AVERAGE    1
-#define AVERAGE_INTVL       50
+#define AVERAGE_INTVL       100
 #define RSSI_OFFSET         72  // for true dBm values
 
 static int averages, channel, scan_state;
-static u32 rssi_sum;
 static u8 calibration[MAX_RADIOCHANNEL];
 static u8 calibration_fscal2, calibration_fscal3;
 
@@ -128,18 +127,8 @@ static u8 _scan_rssi()
     return rand32() % 0xFF;
 #else
     u8 rssi = CC2500_ReadReg(CC2500_34_RSSI);  // 0.5 db/count, RSSI value read from the RSSI status register is a 2’s complement number
-    // CC2500_Strobe(CC2500_SIDLE);
     u8 rssi_rel;
-    //rssi_test = rssi;
-    /*
-    if (rssi >= 128) {
-        rssi_dbm = (rssi - 256) / 2;
-    } else {
-        rssi_dbm = rssi / 2;
-    return abs(rssi_dbm - RSSI_OFFSET);
-    */
-    //CC2500_Strobe(CC2500_SFRX); // flush fifo
-    // CC2500_Strobe(CC2500_SNOP);
+
     if (rssi >= 128) {
         rssi_rel = rssi - 128;  // relative power levels 0-127 (equals -137 to -72 dBm)
     } else {
@@ -154,37 +143,28 @@ static u16 scan_cb()
     int rssi_value;
     switch (scan_state) {
         case SCAN_CHANNEL_CHANGE:
-            rssi_sum = 0;
             averages = 0;
             channel++;
             //CC2500_Strobe(CC2500_SFRX);
             if (channel == (Scanner.chan_max - Scanner.chan_min + 1))
                 channel = 0;
-            //if (Scanner.averaging)
-            //    Scanner.rssi[channel] = 0;
+            if (Scanner.averaging)
+                Scanner.rssi_peak[channel] = 0;  // Reset value for peak mode scans after channel change
             _scan_next();
             scan_state = SCAN_GET_RSSI;
             CC2500_Strobe(CC2500_SRX);
-            
             return CHANNEL_LOCK_TIME;
         case SCAN_GET_RSSI:
             rssi_value = _scan_rssi();
-            if (Scanner.averaging) {
-                rssi_sum += rssi_value;
-                if (averages >= INTERNAL_AVERAGE * Scanner.averaging)
-                    rssi_sum -= Scanner.rssi[channel];
-                else
-                    averages++;
-                Scanner.rssi[channel] = (rssi_sum + averages / 2) / averages;  // exponential smoothing
-            } else {
-                if (rssi_value > Scanner.rssi[channel])
-                    Scanner.rssi[channel] = rssi_value;
-            }
-            if (averages < INTERNAL_AVERAGE * Scanner.averaging)
-                return AVERAGE_INTVL + rand32() % 50;  // make measurements slightly random in time
+            Scanner.rssi[channel] = (rssi_value + 9 * Scanner.rssi[channel]) / 10;  // fast exponential smoothing with alpha 0.1
+            if (rssi_value > Scanner.rssi_peak[channel])
+                    Scanner.rssi_peak[channel] = rssi_value;
+            averages++;
+            if (averages < (abs(Scanner.averaging)))
+                return AVERAGE_INTVL + rand32() % 10;  // make measurements slightly random in time
             scan_state = SCAN_CHANNEL_CHANGE;
     }
-    return 50;
+    return 100;
 }
 
 static void initialize()
@@ -192,11 +172,11 @@ static void initialize()
     CLOCK_StopTimer();
     Scanner.chan_min = MIN_RADIOCHANNEL;
     Scanner.chan_max = MAX_RADIOCHANNEL;
-    rssi_sum = 0;
     averages = 0;
     channel = 0;
     scan_state = SCAN_CHANNEL_CHANGE;
     memset(Scanner.rssi, 0, sizeof(Scanner.rssi));  // clear old rssi values
+    memset(Scanner.rssi_peak, 0, sizeof(Scanner.rssi_peak));  // clear old rssi peak values
     CC2500_Reset();
     cc2500_init();
     _calibrate();  // precalibrate frequency registers for faster channel switching
@@ -209,7 +189,7 @@ uintptr_t SCANNER_CC2500_Cmds(enum ProtoCmds cmd)
         case PROTOCMD_INIT:  initialize(); return 0;
         case PROTOCMD_DEINIT:
         case PROTOCMD_RESET:
-            CLOCK_StopTimer(); //printf("RSSI chan %d: %d/%d\n", channel, rssi_test, Scanner.rssi[channel]);
+            CLOCK_StopTimer();
             return (CC2500_Reset() ? 1 : -1);
         case PROTOCMD_CHECK_AUTOBIND: return 0;
         case PROTOCMD_BIND: return 0;
