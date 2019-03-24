@@ -46,7 +46,7 @@ void _draw_channels()
     for (int i = 0; i < Scanner.chan_max - Scanner.chan_min; i++) {
         col = (LCD_WIDTH - (Scanner.chan_max - Scanner.chan_min)) / 2 + i;
         if (Scanner.averaging > 0) {
-            height = Scanner.rssi[i] * (LCD_HEIGHT - offset) / 0x1F;
+            height = Scanner.rssi[i] * (LCD_HEIGHT - offset) / 0xFF;
         } else {
             height = Scanner.rssi_peak[i] * (LCD_HEIGHT - offset) / 0xFF;
         }

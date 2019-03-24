@@ -35,7 +35,7 @@
 #define MIN_RADIOCHANNEL    0x00
 #define MAX_RADIOCHANNEL    0x80  // testing only, max is 0xFF
 #define CHANNEL_LOCK_TIME   100  // with precalibration channel requires  only 90 usec for synthesizer to settle
-#define AVERAGE_INTVL       100
+#define AVERAGE_INTVL       60
 #define RSSI_OFFSET         72  // for true dBm values
 
 static int averages, channel, scan_state;
@@ -89,7 +89,7 @@ static void cc2500_init()
 
 static void _calibrate()
 {
-    for (int c = 0; c < MAX_RADIOCHANNEL; c++) {
+    for (int c = Scanner.chan_min; c < Scanner.chan_max; c++) {
         CLOCK_ResetWatchdog();
         CC2500_Strobe(CC2500_SIDLE);
         CC2500_WriteReg(CC2500_0A_CHANNR, c);
@@ -145,7 +145,6 @@ static u16 scan_cb()
         case SCAN_CHANNEL_CHANGE:
             averages = 0;
             channel++;
-            //CC2500_Strobe(CC2500_SFRX);
             if (channel == (Scanner.chan_max - Scanner.chan_min + 1))
                 channel = 0;
             if (Scanner.averaging)
@@ -164,7 +163,7 @@ static u16 scan_cb()
                 return AVERAGE_INTVL + rand32() % 10;  // make measurements slightly random in time
             scan_state = SCAN_CHANNEL_CHANGE;
     }
-    return 100;
+    return 60;
 }
 
 static void initialize()
