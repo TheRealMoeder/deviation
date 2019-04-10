@@ -175,7 +175,7 @@ static void GD00X_send_packet()
                     len--;
                 }
 
-                packet[3]=(packet[0]+packet[1]+packet[2]+packet[4])^0x65;
+                packet[3]=(packet[0]+packet[1]+packet[2]+packet[4])^(rx_tx_addr[0]^rx_tx_addr[1]^rx_tx_addr[2]);
 
                 if ((packet_count%12) == 0 )
                     hopping_frequency_no ^= 1;			// Toggle between the 2 frequencies
