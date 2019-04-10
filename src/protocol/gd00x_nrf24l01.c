@@ -227,7 +227,7 @@ static void GD00X_init()
             XN297_SetTXAddr((u8*)"GDKNx", 5);
             break;
     }
-    NRF24L01_WriteReg(NRF24L01_05_RF_CH, GD00X_RF_BIND_CHANNEL);  // Bind channel
+    NRF24L01_WriteReg(NRF24L01_05_RF_CH, Model.proto_opts[PROTOOPTS_FORMAT]==FORMAT_V1 ? GD00X_RF_BIND_CHANNEL : GD00X_V2_RF_BIND_CHANNEL);  // Bind channel
     NRF24L01_FlushTx();
     NRF24L01_FlushRx();
     NRF24L01_WriteReg(NRF24L01_07_STATUS, 0x70);     // Clear data ready, data sent, and retransmit
@@ -260,37 +260,25 @@ static void GD00X_initialize_txid()
     // Pump zero bytes for LFSR to diverge more
     for (i = 0; i < sizeof(lfsr); ++i) rand32_r(&lfsr, 0);
 
+    // tx address
+    for (i=0; i<2; i++)
+        rx_tx_addr[i] = (lfsr >> (i*8)) & 0xff;
+    
+    rx_tx_addr[2]=0x12;
+    rx_tx_addr[3]=0x13;
+    
+    u8 start=76+(rx_tx_addr[0]&0x03);
+    
+    
     switch (Model.proto_opts[PROTOOPTS_FORMAT]) {
         case FORMAT_V1:
-            // tx address
-            for (i=0; i<2; i++)
-                rx_tx_addr[i] = (lfsr >> (i*8)) & 0xff;
-            
-            rx_tx_addr[2]=0x12;
-            rx_tx_addr[3]=0x13;
-            
-            u8 start=76+(rx_tx_addr[0]&0x03);
             for (i=0; i<4;i++)
                 hopping_frequency[i]=start-(i<<1);
-            
-            #ifdef FORCE_GD00X_ORIGINAL_ID
-                rx_tx_addr[0]=0x1F;
-                rx_tx_addr[1]=0x39;
-                rx_tx_addr[2]=0x12;
-                rx_tx_addr[3]=0x13;
-                for(i=0; i<4;i++)
-                    hopping_frequency[i]=79-(i<<1);
-            #endif
             break;
         case FORMAT_V2:
             //Only 1 ID for now...
-            rx_tx_addr[0]=0x65;
-            rx_tx_addr[1]=0x00;
-            rx_tx_addr[2]=0x00;
-            rx_tx_addr[3]=0x95;
-            rx_tx_addr[4]=0x47;	 //'G'
-            hopping_frequency[0]=0x05;
-            hopping_frequency[1]=0x25;
+            hopping_frequency[0] = 0x15 + ((rx_tx_addr[0] ^ rx_tx_addr[1] ^ rx_tx_addr[2] ^ rx_tx_addr[3]) & 0x1F);
+            hopping_frequency[1] = hopping_frequency[0] + 0x20;
             break;
     }
 }
